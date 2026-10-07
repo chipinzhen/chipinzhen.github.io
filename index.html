@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pinzhen Chi</title>
+<meta name="description" content="Pinzhen Chi, PhD student at Hong Kong Baptist University. Generative models (Bayesian Flow Networks, diffusion) for structure-based drug design.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧪</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&family=Schibsted+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: light dark;
+    --paper: #f6f7f4;
+    --ink: #18202b;
+    --muted: #5e6874;
+    --rule: #dadee3;
+    --surface: #eceff3;
+    --accent: #2b47c9;     /* nitrogen blue */
+    --oxygen: #c42338;     /* oxygen red, used for venues */
+    --bond: #8a929c;
+    --atom-c: #4a5462;
+    --atom-n: #2b47c9;
+    --atom-o: #c42338;
+    --atom-f: #2e8b62;
+    --serif: "Literata", Georgia, "Times New Roman", "Songti SC", serif;
+    --sans: "Schibsted Grotesk", "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #11151b;
+      --ink: #e5e8ec;
+      --muted: #9aa3ae;
+      --rule: #2a313b;
+      --surface: #191f27;
+      --accent: #93a6ff;
+      --oxygen: #ff8090;
+      --bond: #6b7480;
+      --atom-c: #b8c0ca;
+      --atom-n: #93a6ff;
+      --atom-o: #ff8090;
+      --atom-f: #6fd3a2;
+    }
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 1.0625rem;
+    line-height: 1.7;
+    font-optical-sizing: auto;
+  }
+  a {
+    color: var(--accent);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+  }
+  a:hover { text-decoration-thickness: 2px; }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  .wrap {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 0 clamp(20px, 5vw, 48px);
+  }
+
+  /* ---------- Hero ---------- */
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 420px);
+    gap: clamp(28px, 5vw, 72px);
+    align-items: center;
+    padding: clamp(48px, 10vw, 112px) 0 clamp(36px, 6vw, 72px);
+  }
+  .name {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: clamp(2.75rem, 7.2vw, 4.75rem);
+    line-height: 0.98;
+    letter-spacing: -0.04em;
+    margin: 0;
+  }
+  .role {
+    font-family: var(--sans);
+    font-weight: 500;
+    font-size: 1.0625rem;
+    color: var(--muted);
+    margin: 1rem 0 0;
+  }
+  .lede {
+    font-size: clamp(1.25rem, 2.2vw, 1.4375rem);
+    line-height: 1.5;
+    max-width: 30ch;
+    margin: 1.5rem 0 0;
+  }
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.4rem;
+    list-style: none;
+    padding: 0;
+    margin: 1.75rem 0 0;
+    font-family: var(--sans);
+    font-weight: 500;
+    font-size: 0.9375rem;
+  }
+
+  .flow { margin: 0; }
+  .flow canvas {
+    display: block;
+    width: 100%;
+    aspect-ratio: 19 / 14;
+    background: var(--surface);
+    border-radius: 16px;
+  }
+  .flow figcaption {
+    margin-top: 0.7rem;
+    font-family: var(--sans);
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--muted);
+  }
+  .flow-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 0.45rem;
+  }
+  .key { display: flex; gap: 0.9rem; }
+  .key span { display: inline-flex; align-items: center; gap: 0.35rem; }
+  .key i {
+    width: 0.6rem; height: 0.6rem;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .resample {
+    font: inherit;
+    font-weight: 600;
+    color: var(--accent);
+    background: none;
+    border: 0;
+    padding: 0.2rem 0;
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+  }
+  .resample:hover { text-decoration-thickness: 2px; }
+
+  /* ---------- Sections ---------- */
+  .section {
+    display: grid;
+    grid-template-columns: 150px minmax(0, 1fr);
+    gap: 0 clamp(24px, 4vw, 56px);
+    padding: clamp(28px, 4vw, 44px) 0;
+    border-top: 1px solid var(--rule);
+  }
+  .section > h2 {
+    font-family: var(--sans);
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.4;
+    margin: 0.3rem 0 0;
+  }
+  .content { max-width: 66ch; }
+  .content > p { margin: 0; }
+  .content > p + p { margin-top: 1rem; }
+
+  .news {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.75rem 1.5rem;
+    margin: 0;
+  }
+  .news dt {
+    font-family: var(--sans);
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    padding-top: 0.1rem;
+  }
+  .news dd { margin: 0; }
+
+  .interests { margin: 0; }
+  .interests dt {
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 1.0625rem;
+    line-height: 1.4;
+    margin-top: 1.4rem;
+  }
+  .interests dt:first-child { margin-top: 0; }
+  .interests dd { margin: 0.3rem 0 0; }
+
+  .pub + .pub { margin-top: 2rem; }
+  .venue {
+    font-family: var(--sans);
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--oxygen);
+    margin: 0 0 0.3rem;
+  }
+  .pub h3 {
+    font-size: 1.1875rem;
+    font-weight: 600;
+    line-height: 1.4;
+    margin: 0;
+  }
+  .authors {
+    margin: 0.4rem 0 0;
+    color: var(--muted);
+    font-size: 1rem;
+  }
+  .authors strong { color: var(--ink); font-weight: 600; }
+  .summary { margin: 0.4rem 0 0; }
+  .pub-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.1rem;
+    margin: 0.55rem 0 0;
+    font-family: var(--sans);
+    font-weight: 500;
+    font-size: 0.9375rem;
+  }
+
+  footer {
+    border-top: 1px solid var(--rule);
+    padding: 2rem 0 4rem;
+    font-family: var(--sans);
+    font-size: 0.875rem;
+    color: var(--muted);
+  }
+  footer p { margin: 0; }
+
+  @media (max-width: 780px) {
+    .hero { grid-template-columns: 1fr; }
+    .flow { max-width: 460px; }
+    .section { grid-template-columns: 1fr; }
+    .section > h2 { margin: 0 0 0.9rem; }
+  }
+  @media (max-width: 420px) {
+    .news { grid-template-columns: 1fr; gap: 0.15rem; }
+    .news dd + dt { margin-top: 0.8rem; }
+  }
+</style>
+</head>
+<body>
+<main class="wrap">
+
+  <header class="hero">
+    <div>
+      <h1 class="name">Pinzhen Chi</h1>
+      <p class="role">PhD student, Hong Kong Baptist University</p>
+      <p class="lede">I build generative models that design drug molecules directly inside protein pockets.</p>
+      <ul class="links">
+        <!-- TODO: replace the placeholder links below -->
+        <li><a href="mailto:cspzchi@comp.hkbu.edu.hk">Email</a></li>
+        <li><a href="https://scholar.google.com/">Google Scholar</a></li>
+        <li><a href="https://github.com/chipinzhen">GitHub</a></li>
+        <li><a href="https://openreview.net/profile?id=~Pinzhen_Chi1">OpenReview</a></li>
+        <li><a href="cv.pdf">CV</a></li>
+      </ul>
+    </div>
+
+    <figure class="flow">
+      <canvas id="flow" role="img" aria-label="Animation: a small drug-like molecule takes shape as a Bayesian flow sharpens its estimates of each atom's position and element."></canvas>
+      <figcaption>
+        A Bayesian flow resolving a ligand. Each atom's position and element start as broad beliefs and sharpen with every noisy observation.
+        <div class="flow-controls">
+          <div class="key" aria-label="Element colors">
+            <span><i style="background:var(--atom-c)"></i>C</span>
+            <span><i style="background:var(--atom-n)"></i>N</span>
+            <span><i style="background:var(--atom-o)"></i>O</span>
+            <span><i style="background:var(--atom-f)"></i>F</span>
+          </div>
+          <button class="resample" id="resample" type="button">Resample</button>
+        </div>
+      </figcaption>
+    </figure>
+  </header>
+
+  <section class="section" id="about">
+    <h2>About</h2>
+    <div class="content">
+      <p>I'm Pinzhen (Panzeon), a PhD student at Hong Kong Baptist University, supervised by <a href="https://www.comp.hkbu.edu.hk/~william/">Prof. William K. Cheung</a>. My research interests include reinforcement learning, generative models, and structure-based drug design (SBDD).</p>
+      <p>Outside research, I enjoy playing basketball.</p>
+      <p>I'm always happy to discuss research and open to collaboration. If our interests overlap, feel free to <a href="mailto:cspzchi@comp.hkbu.edu.hk">email me</a>.</p>
+    </div>
+  </section>
+
+  <section class="section" id="news">
+    <h2>News</h2>
+    <div class="content">
+      <dl class="news">
+        <dt>Dec 2026</dt>
+        <dd>Presenting our paper at NeurIPS 2026 in Sydney. Say hi at the poster session.</dd>
+        <dt>Sep 2026</dt>
+        <dd>Our paper on confidence-based diffusion sampling for structure-based drug design was accepted to the NeurIPS 2026 main track.</dd>
+        <!-- Add new items at the top:
+        <dt>Mon YYYY</dt>
+        <dd>What happened.</dd>
+        -->
+      </dl>
+    </div>
+  </section>
+
+  <section class="section" id="research">
+    <h2>Research</h2>
+    <div class="content">
+      <dl class="interests">
+        <dt>Generative models for 3D molecules</dt>
+        <dd>Bayesian Flow Networks and diffusion models that generate atom coordinates and atom types together, conditioned on a protein pocket and respecting SE(3) symmetry.</dd>
+
+        <dt>Fast, training-free sampling</dt>
+        <dd>Cutting the number of network evaluations at inference time without retraining, through confidence-based sampling and ODE solvers for diffusion and Bayesian flows.</dd>
+
+        <dt>Aligning generators with drug-design goals</dt>
+        <dd>Preference optimization and reinforcement learning (DPO-style objectives, GRPO) for balancing binding affinity, drug-likeness, synthesizability and physical validity at the same time.</dd>
+
+        <dt>Theory behind the methods</dt>
+        <dd>Measure-theoretic analysis of what Bayesian flow and diffusion samplers, and the objectives used to fine-tune them, actually optimize.</dd>
+      </dl>
+    </div>
+  </section>
+
+  <section class="section" id="publications">
+    <h2>Publications</h2>
+    <div class="content">
+      <article class="pub">
+        <p class="venue">NeurIPS 2026</p>
+        <h3>Confidence-Based Diffusion Sampling with Geometric Readiness Awareness for Accelerated Structure-based Drug Design</h3>
+        <p class="authors"><strong>Pinzhen Chi</strong>, William K. Cheung, Kejing Yin</p>
+      </article>
+      <!-- Copy the <article class="pub"> block above for each new paper. -->
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Last updated October 2026.</p>
+  </div>
+</footer>
+
+<script>
+(() => {
+  const canvas = document.getElementById('flow');
+  if (!canvas || !canvas.getContext) return;
+  const ctx = canvas.getContext('2d');
+  const button = document.getElementById('resample');
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const darkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+
+  /* ---- A small drug-like ligand. Types: 0 C, 1 N, 2 O, 3 F ---- */
+  const atoms = [];
+  const bonds = [];
+  const add = (x, y, z, t) => { atoms.push({ x, y, z, t }); return atoms.length - 1; };
+
+  const ringA = [];
+  for (let k = 0; k < 6; k++) {
+    const a = k * Math.PI / 3;
+    ringA.push(add(-1.6 + 0.7 * Math.cos(a), 0.7 * Math.sin(a), 0.25 * Math.sin(a), 0));
+  }
+  for (let k = 0; k < 6; k++) bonds.push([ringA[k], ringA[(k + 1) % 6]]);
+
+  const c1 = add(-0.2, 0, 0.05, 0);   bonds.push([ringA[0], c1]);
+  const o1 = add(0.15, 0.62, 0.1, 2); bonds.push([c1, o1]);
+  const n1 = add(0.05, -0.62, -0.05, 1); bonds.push([c1, n1]);
+
+  const ringB = [];
+  for (let k = 0; k < 6; k++) {
+    const a = Math.PI + k * Math.PI / 3;
+    ringB.push(add(1.2 + 0.7 * Math.cos(a), -0.95 + 0.7 * Math.sin(a), -0.25 * Math.cos(a), k === 2 ? 1 : 0));
+  }
+  for (let k = 0; k < 6; k++) bonds.push([ringB[k], ringB[(k + 1) % 6]]);
+  bonds.push([n1, ringB[0]]);
+
+  const f1 = add(2.6, -0.95, -0.35, 3);  bonds.push([ringB[3], f1]);
+  const o2 = add(-3.0, 0.12, 0, 2);      bonds.push([ringA[3], o2]);
+  const me = add(-3.55, 0.62, 0.12, 0);  bonds.push([o2, me]);
+  const n2 = add(-1.0, 1.25, 0.3, 1);    bonds.push([ringA[1], n2]);
+
+  // Center on the bounding box, then normalise for the flow
+  const NORM = 3.2;
+  const mid = (key) => {
+    const v = atoms.map(a => a[key]);
+    return (Math.min(...v) + Math.max(...v)) / 2;
+  };
+  const cx = mid('x'), cy = mid('y'), cz = mid('z');
+  atoms.forEach(a => {
+    a.target = [(a.x - cx) / NORM, (a.y - cy) / NORM, (a.z - cz) / NORM];
+  });
+
+  /* ---- Bayesian flow: coordinates use beta(t) = sigma1^(-2t) - 1,
+          atom types use beta(t) = beta1 * t^2 ---- */
+  const K = 4;
+  const SIGMA1 = 0.025;
+  const BETA1 = 8;
+  const STEPS = 90;
+  const DURATION = 3400;
+  const betaX = t => Math.pow(SIGMA1, -2 * t) - 1;
+  const betaV = t => BETA1 * t * t;
+
+  const gauss = () => {
+    let u = 0, v = 0;
+    while (!u) u = Math.random();
+    while (!v) v = Math.random();
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  };
+
+  let state;
+  function reset() {
+    state = {
+      step: 0,
+      rho: 1,
+      mu: atoms.map(() => [0, 0, 0]),
+      theta: atoms.map(() => new Array(K).fill(1 / K)),
+      done: false,
+      doneAt: 0
+    };
+  }
+
+  function step(i) {
+    const t0 = (i - 1) / STEPS, t1 = i / STEPS;
+    const ax = betaX(t1) - betaX(t0);
+    const av = betaV(t1) - betaV(t0);
+    const sdX = 1 / Math.sqrt(ax);
+    const sdV = Math.sqrt(av * K);
+    atoms.forEach((a, j) => {
+      const m = state.mu[j];
+      for (let d = 0; d < 3; d++) {
+        const y = a.target[d] + sdX * gauss();
+        m[d] = (state.rho * m[d] + ax * y) / (state.rho + ax);
+      }
+      const th = state.theta[j];
+      let sum = 0;
+      for (let k = 0; k < K; k++) {
+        const y = av * (K * (k === a.t ? 1 : 0) - 1) + sdV * gauss();
+        th[k] *= Math.exp(y);
+        sum += th[k];
+      }
+      for (let k = 0; k < K; k++) th[k] /= sum;
+    });
+    state.rho += ax;
+  }
+
+  /* ---- Colors from CSS tokens ---- */
+  let colors;
+  const hexToRgb = (h) => {
+    h = h.trim().replace('#', '');
+    if (h.length === 3) h = h.split('').map(c => c + c).join('');
+    const v = parseInt(h, 16);
+    return [(v >> 16) & 255, (v >> 8) & 255, v & 255];
+  };
+  function readColors() {
+    const cs = getComputedStyle(document.documentElement);
+    colors = {
+      atoms: ['--atom-c', '--atom-n', '--atom-o', '--atom-f'].map(v => hexToRgb(cs.getPropertyValue(v))),
+      bond: hexToRgb(cs.getPropertyValue('--bond')),
+      surface: hexToRgb(cs.getPropertyValue('--surface'))
+    };
+  }
+  const rgba = (c, a) => `rgba(${c[0] | 0}, ${c[1] | 0}, ${c[2] | 0}, ${a})`;
+  const clamp01 = v => Math.max(0, Math.min(1, v));
+
+  /* ---- Rendering ---- */
+  let W = 0, H = 0, scale = 1;
+
+  function project(m, ang, tilt) {
+    const x = m[0] * NORM, y = m[1] * NORM, z = m[2] * NORM;
+    const c = Math.cos(ang), s = Math.sin(ang);
+    const x1 = x * c + z * s;
+    const z1 = -x * s + z * c;
+    const ct = Math.cos(tilt), st = Math.sin(tilt);
+    const y1 = y * ct - z1 * st;
+    const z2 = y * st + z1 * ct;
+    const k = 9 / (9 + z2);
+    return { x: W / 2 + x1 * scale * k, y: H / 2 - y1 * scale * k, z: z2, s: k };
+  }
+
+  function draw(now) {
+    if (!W || !state) return;
+    ctx.clearRect(0, 0, W, H);
+    const animate = !reduceMotion.matches;
+    const ang = animate ? -0.25 + 0.38 * Math.sin(now / 2800) : -0.25;
+    const tilt = 0.32;
+
+    const sdPx = (1 / Math.sqrt(state.rho)) * NORM * scale;
+    const certainty = clamp01(1 - sdPx / 28);
+    const snap = state.done ? (animate ? clamp01((now - state.doneAt) / 450) : 1) : 0;
+    const pts = state.mu.map(m => project(m, ang, tilt));
+
+    // Bonds appear once positions are sharp enough to trust
+    const bondAlpha = 0.85 * clamp01(1 - sdPx / 12);
+    if (bondAlpha > 0.01) {
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = rgba(colors.bond, bondAlpha);
+      ctx.lineWidth = Math.max(1.6, scale * 0.055);
+      ctx.beginPath();
+      bonds.forEach(([i, j]) => {
+        ctx.moveTo(pts[i].x, pts[i].y);
+        ctx.lineTo(pts[j].x, pts[j].y);
+      });
+      ctx.stroke();
+    }
+
+    const order = pts.map((_, i) => i).sort((a, b) => pts[b].z - pts[a].z);
+    const baseR = Math.max(4.5, scale * 0.13);
+    const halo = Math.min(sdPx * 1.8, 70);
+
+    for (const i of order) {
+      const p = pts[i];
+      const th = state.theta[i];
+      const rgb = [0, 0, 0];
+      for (let k = 0; k < K; k++) {
+        const w = th[k] * (1 - snap) + (k === atoms[i].t ? 1 : 0) * snap;
+        for (let c = 0; c < 3; c++) rgb[c] += w * colors.atoms[k][c];
+      }
+      const r = baseR * p.s;
+
+      if (halo > r * 1.2) {
+        const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, halo);
+        g.addColorStop(0, rgba(rgb, 0.22));
+        g.addColorStop(1, rgba(rgb, 0));
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, halo, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+      ctx.fillStyle = rgba(rgb, 0.35 + 0.65 * certainty);
+      ctx.fill();
+      ctx.lineWidth = Math.max(1.5, r * 0.28);
+      ctx.strokeStyle = rgba(colors.surface, 1);
+      ctx.stroke();
+    }
+  }
+
+  /* ---- Loop ---- */
+  let raf = 0, start = null, visible = true;
+
+  function tick(now) {
+    raf = 0;
+    if (start === null) start = now;
+    if (!state.done) {
+      const prog = Math.min(1, (now - start) / DURATION);
+      const target = Math.floor(prog * STEPS);
+      while (state.step < target) { state.step++; step(state.step); }
+      if (prog >= 1) { state.done = true; state.doneAt = now; }
+    }
+    draw(now);
+    if (visible && !reduceMotion.matches) raf = requestAnimationFrame(tick);
+  }
+  const play = () => { if (!raf) raf = requestAnimationFrame(tick); };
+  const stop = () => { if (raf) { cancelAnimationFrame(raf); raf = 0; } };
+
+  function runInstant() {
+    while (state.step < STEPS) { state.step++; step(state.step); }
+    state.done = true;
+    draw(0);
+  }
+
+  function restart() {
+    stop();
+    reset();
+    start = null;
+    if (reduceMotion.matches) runInstant();
+    else play();
+  }
+
+  function resize() {
+    const r = canvas.getBoundingClientRect();
+    if (!r.width) return;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    canvas.width = Math.round(r.width * dpr);
+    canvas.height = Math.round(r.height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    W = r.width;
+    H = r.height;
+    scale = Math.min(W * 0.92 / 6.4, H * 0.86 / 3.2);
+    if (!raf) draw(performance.now());
+  }
+
+  readColors();
+  reset();
+  resize();
+
+  if ('ResizeObserver' in window) new ResizeObserver(resize).observe(canvas);
+  else window.addEventListener('resize', resize);
+
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      if (visible && !reduceMotion.matches) play();
+      else stop();
+    }).observe(canvas);
+  }
+
+  button.addEventListener('click', restart);
+  reduceMotion.addEventListener('change', restart);
+  darkScheme.addEventListener('change', () => { readColors(); draw(performance.now()); });
+
+  if (reduceMotion.matches) runInstant();
+  else play();
+})();
+</script>
+</body>
+</html>
