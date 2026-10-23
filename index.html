@@ -162,20 +162,30 @@
   .content > p { margin: 0; }
   .content > p + p { margin-top: 0.65rem; }
 
-  .news {
+  .news, .education {
     display: grid;
     grid-template-columns: 82px minmax(0, 1fr);
     gap: 0.6rem 1.1rem;
     margin: 0;
   }
-  .news dt {
+  .news dt, .education dt {
     font-size: 0.875rem;
     color: var(--muted);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
     padding-top: 0.1rem;
   }
-  .news dd { margin: 0; }
+  .news dd, .education dd { margin: 0; }
+  .education {
+    grid-template-columns: 116px minmax(0, 1fr);
+    row-gap: 1rem;
+  }
+  .education strong { font-weight: 600; }
+  .education .degree {
+    display: block;
+    color: var(--muted);
+    font-size: 0.9375rem;
+  }
 
   .interests { margin: 0; }
   .interests dt {
@@ -234,8 +244,8 @@
   }
   @media (max-width: 380px) {
     .wrap { padding: 0 20px; }
-    .news { grid-template-columns: 1fr; gap: 0.15rem; }
-    .news dd + dt { margin-top: 0.8rem; }
+    .news, .education { grid-template-columns: 1fr; gap: 0.15rem; }
+    .news dd + dt, .education dd + dt { margin-top: 0.8rem; }
   }
   @media print {
     :root {
@@ -295,6 +305,22 @@
       <p>I'm Pinzhen (Panzeon), a PhD student at Hong Kong Baptist University, supervised by <a href="https://www.comp.hkbu.edu.hk/~william/">Prof. William K. Cheung</a>. My research interests include reinforcement learning, generative models, and structure-based drug design (SBDD).</p>
       <p>Outside research, I enjoy playing basketball.</p>
       <p>I'm always happy to discuss research and open to collaboration. If our interests overlap, feel free to <a href="mailto:cspzchi@comp.hkbu.edu.hk">email me</a>.</p>
+    </div>
+  </section>
+
+  <section class="section" id="education">
+    <h2>Education</h2>
+    <div class="content">
+      <dl class="education">
+        <dt>2023–present</dt>
+        <dd><strong>Hong Kong Baptist University</strong><span class="degree">PhD student</span></dd>
+        <dt>2021–2022</dt>
+        <dd><strong>The University of Hong Kong</strong><span class="degree">Master’s degree</span></dd>
+        <dt>2017–2018</dt>
+        <dd><strong>The University of Edinburgh</strong><span class="degree">Master’s degree</span></dd>
+        <dt>2013–2017</dt>
+        <dd><strong>Hangzhou Dianzi University</strong></dd>
+      </dl>
     </div>
   </section>
 
