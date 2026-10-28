@@ -74,6 +74,19 @@
     align-items: center;
     padding: 56px 0 36px;
   }
+  .profile-heading {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .profile-heading > div { min-width: 0; }
+  .portrait {
+    display: block;
+    width: 96px;
+    height: auto;
+    flex-shrink: 0;
+    border-radius: 2px;
+  }
   .name {
     font-family: var(--serif);
     font-weight: 400;
@@ -239,6 +252,8 @@
       padding: 36px 0 28px;
     }
     .name { font-size: 2.25rem; }
+    .profile-heading { gap: 18px; }
+    .portrait { width: 84px; }
     .flow { max-width: 320px; width: 100%; }
     .flow canvas { aspect-ratio: 2 / 1; }
   }
@@ -269,8 +284,13 @@
 
   <header class="hero">
     <div>
-      <h1 class="name">Pinzhen Chi</h1>
-      <p class="role">PhD student, Hong Kong Baptist University</p>
+      <div class="profile-heading">
+        <img class="portrait" src="assets/pinzhen-chi.jpg" alt="Pinzhen Chi" width="1280" height="1707" decoding="async">
+        <div>
+          <h1 class="name">Pinzhen Chi</h1>
+          <p class="role">PhD student, Hong Kong Baptist University</p>
+        </div>
+      </div>
       <p class="lede">I'm interested in how generative models can help with structure-based drug design.</p>
       <ul class="links">
         <!-- TODO: replace the placeholder links below -->
